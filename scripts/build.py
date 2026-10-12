@@ -2,11 +2,12 @@
 """把 v2fly 官方工具导出的明文列表转换成 mihomo/Stash 可用的 .mrs。
 
 输入：--plain-dir 下的 <name>.txt（v2fly `--exportlists` 的输出，每行 `type:value[:@attr,@attr]`）
-输出：--out-dir/geosite/<name>.mrs 和 <name>.list
+输出：--out-dir/geosite/<name>.mrs 和 <name>.list；regex.list 里的列表另出 <name>.classical.list
 
-两份配置：
+三份配置：
   geosite.list  直接转换的 geosite 名单（支持 name@attr）
   merge.list    多来源合并去重，见文件头注释
+  regex.list    保留 regexp/keyword 的列表（格式同 geosite.list），输出 classical 文本
 """
 import argparse
 import subprocess
@@ -55,8 +56,8 @@ def export_names(names_file: Path, merge_file: Path) -> list[str]:
 
 
 def plain_to_sets(path: Path, want_attr: str = ""):
-    """返回 (suffixes, fulls, dropped)，dropped 是无法放进 domain 类型 mrs 的 regexp/keyword 数。"""
-    suffixes, fulls, dropped = set(), set(), 0
+    """返回 (suffixes, fulls, classical)，classical 是无法放进 domain 类型 mrs 的 DOMAIN-REGEX/DOMAIN-KEYWORD 行。"""
+    suffixes, fulls, classical = set(), set(), set()
     for typ, value, attrs in parse_plain(path):
         if want_attr and want_attr not in attrs:
             continue
@@ -64,9 +65,11 @@ def plain_to_sets(path: Path, want_attr: str = ""):
             suffixes.add(value)
         elif typ == "full":
             fulls.add(value)
-        else:
-            dropped += 1
-    return suffixes, fulls, dropped
+        elif typ == "regexp":
+            classical.add(f"DOMAIN-REGEX,{value}")
+        elif typ == "keyword":
+            classical.add(f"DOMAIN-KEYWORD,{value}")
+    return suffixes, fulls, classical
 
 
 def url_to_sets(url: str):
@@ -111,6 +114,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--names", type=Path, default=Path("geosite.list"))
     ap.add_argument("--merges", type=Path, default=Path("merge.list"))
+    ap.add_argument("--regex", type=Path, default=Path("regex.list"))
     ap.add_argument("--plain-dir", type=Path)
     ap.add_argument("--out-dir", type=Path)
     ap.add_argument("--mihomo", default="mihomo")
@@ -126,6 +130,7 @@ def main() -> int:
     out = args.out_dir / "geosite"
     out.mkdir(parents=True, exist_ok=True)
     ok = True
+    regex_specs = set(read_lines(args.regex)) if args.regex.exists() else set()
 
     for spec in read_lines(args.names):
         base, _, want_attr = spec.partition("@")
@@ -134,8 +139,14 @@ def main() -> int:
             print(f"[ERROR] {spec}: {src.name} 不存在（上游没有这个列表或为空）", file=sys.stderr)
             ok = False
             continue
-        suffixes, fulls, dropped = plain_to_sets(src, want_attr)
-        note = f"（丢弃 {dropped} 条 regexp/keyword）" if dropped else ""
+        suffixes, fulls, classical = plain_to_sets(src, want_attr)
+        note = ""
+        if classical and spec in regex_specs:
+            lines = sorted(classical)
+            (out / f"{spec}.classical.list").write_text("\n".join(lines) + "\n")
+            note = f"（另输出 {len(lines)} 条 regexp/keyword 到 .classical.list）"
+        elif classical:
+            note = f"（丢弃 {len(classical)} 条 regexp/keyword）"
         ok &= emit(out, spec, suffixes, fulls, args.mihomo, note)
 
     if args.merges.exists():

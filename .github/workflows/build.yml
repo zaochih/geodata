@@ -9,6 +9,9 @@ on:
     paths:
       - geosite.list
       - merge.list
+      - regex.list
+      - patches.list
+      - extra/**
       - rule-set/**
       - scripts/**
       - .github/workflows/build.yml
@@ -28,6 +31,11 @@ jobs:
         with:
           repository: v2fly/domain-list-community
           path: community
+
+      - name: Patch upstream (open PRs + extra/)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/patch_upstream.sh community patches.list extra patched-prs.txt
 
       - name: Install mihomo
         env:
@@ -53,7 +61,10 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -q -m "Build $(TZ=Asia/Shanghai date +'%Y-%m-%d %H:%M') from v2fly/domain-list-community@$(git -C ../community rev-parse --short HEAD)"
+          msg="Build $(TZ=Asia/Shanghai date +'%Y-%m-%d %H:%M') from v2fly/domain-list-community@$(git -C ../community rev-parse --short HEAD)"
+          # 实际应用了的上游 PR
+          [ -s ../patched-prs.txt ] && msg="$msg + $(cat ../patched-prs.txt)"
+          git commit -q -m "$msg"
           git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" release
 
       # 放在发布之后：这一步出问题不会影响 release 分支的更新

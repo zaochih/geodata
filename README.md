@@ -46,9 +46,31 @@ url: https://raw.githubusercontent.com/zaochih/stash-rules/refs/heads/release/ge
 `merge.list` 把 v2fly 的 `tld-cn` + `geolocation-cn` 和 [ChinaMax](https://github.com/blackmatrix7/ios_rule_script) 合并，
 并删除被父级后缀覆盖的子域名。ChinaMax 条目多但没有 `.cn` 顶级域，v2fly 则带有飞书/字节等完整的公司列表，二者互补。
 
+### 上游补丁 `patches.list` 与 `extra/`
+
+构建时在上游数据（`community/data/`）上先打补丁，`include`、`@attr` 仍由官方工具处理：
+
+- `patches.list`：上游尚未合并的 PR，一行一个 `pr:12345`（可写 `pr:12345@abc1234` 固定 head sha，PR 有新提交时警告）。
+  只应用 PR 中 `data/` 下的改动；PR 已合并会提示移除，已关闭或无法应用会警告并跳过，不会让构建失败。
+- `extra/<列表名>`：追加到上游同名列表末尾（不存在则新建），用 v2fly 源语法（`domain:` / `full:` / `regexp:` / `include:` / `@attr`）。
+  在所有 PR 之后应用；与上游重复的条目会被官方工具自动去重。
+
+### regexp / keyword 的 classical 输出 `regex.list`
+
+`regex.list` 里的列表（格式同 `geosite.list`）会额外输出 `<name>.classical.list`，每行 `DOMAIN-REGEX,...` 或 `DOMAIN-KEYWORD,...`，
+可作为 `behavior: classical`、`format: text` 的 provider 使用，放在对应 `.mrs` 旁边：
+
+```yaml
+behavior: classical
+format: text
+url: https://raw.githubusercontent.com/zaochih/stash-rules/refs/heads/release/geosite/category-game-platforms-download.classical.list
+```
+
 ### 限制
 
-- `regexp:` 和 `keyword:` 规则无法放进 `domain` 类型的 mrs，构建时会丢弃并在日志里提示数量。
+- `regexp:` 和 `keyword:` 规则无法放进 `domain` 类型的 mrs；不在 `regex.list` 里的列表构建时会丢弃并在日志里提示数量，
+  在 `regex.list` 里的则输出到 `.classical.list`。`geolocation-!cn` 因含 `category-porn` 的大量正则，刻意不输出。
+- `patches.list` / `extra/` 只能新增条目，不支持删除。
 - `cn` 依赖 ChinaMax 的第三方数据，口径与 v2fly 的 `cn` 不同，条目约 11 万。
 
 ### 本地构建
@@ -56,6 +78,8 @@ url: https://raw.githubusercontent.com/zaochih/stash-rules/refs/heads/release/ge
 ```sh
 names=$(python3 scripts/build.py --print-export-names)
 git clone --depth 1 https://github.com/v2fly/domain-list-community community
+gh auth login   # 首次需要，patch_upstream.sh 用 gh 取 PR
+bash scripts/patch_upstream.sh community patches.list extra
 (cd community && go run ./ --datapath=./data --outputdir=../plain --exportlists="$names")
 python3 scripts/build.py --plain-dir plain --out-dir dist --mihomo mihomo
 ```

@@ -1,0 +1,5 @@
+# 上游 v2fly/domain-list-community 尚未合并的 PR，一行一个；# 后为注释。
+# 构建时由 scripts/patch_upstream.sh 合并进 community/data（只应用 data/ 下的改动）。
+#   pr:12345            # 说明
+#   pr:12345@abc1234    # 可选：@ 后是固定的 head sha，PR 有新提交（sha 不一致）时警告
+# PR 已合并会提示可移除；已关闭（未合并）或无法应用会警告并跳过，不影响构建。
