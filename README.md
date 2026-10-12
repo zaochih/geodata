@@ -24,7 +24,7 @@ url: https://raw.githubusercontent.com/zaochih/stash-rules/refs/heads/main/rule-
 
 ## 自建 geosite `release` 分支
 
-由 GitHub Action 每天用 [v2fly/domain-list-community](https://github.com/v2fly/domain-list-community) 官方工具构建，
+由 GitHub Action 每天用 [v2fly/domain-list-community](https://github.com/v2fly/domain-list-community) 官方工具构建（上游、`patches.list` 里的 PR 和 `merge.list` 的来源自上次发布后都没有更新时跳过），
 列表名单见 `geosite.list`，产物：
 
 ```yaml

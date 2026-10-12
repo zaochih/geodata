@@ -1,0 +1,19 @@
+upstream c6adacf29cc4fb05e04651fcf03e00989ef9f797
+100644 a13b7921f7823fb8cc9056731005544f1760e4c8 0	.github/workflows/build.yml
+100644 d1c418900b90d08af8f3a8075255e0c50ddbb034 0	extra/category-game-platforms-download
+100644 6617f31a2fb1bf09751b25b2a98da364b2090eb1 0	geosite.list
+100644 78c8b90c08685033f6d73f6c9e5977e526be6e18 0	merge.list
+100644 e1d31d5328ae7f55e4fbaba44e1ce6848d962f00 0	patches.list
+100644 9fd70f01f8b988980a92f78904a0ca24641d4795 0	regex.list
+100644 8c5ced51d2e14de8368673c85e4c302b4b04bab3 0	rule-set/ads-domain
+100644 c2ad65d697e93c67f9af5b52e97901724e00457b 0	rule-set/can-be-direct
+100644 b67b0aabba8e30f8e6d51ab00d464c826c2c48e6 0	rule-set/others-should-be-proxied
+100644 dde14a9100769f443f8f60f9530f272fdec3e772 0	scripts/build.py
+100644 859ecc8dd97e9d2580cc598f70cad15f5380e80b 0	scripts/check_redundant.py
+100755 10a618e2615d9dcfecc6cb1a91bdee01d50aa534 0	scripts/patch_upstream.sh
+pr 4105 OPEN 31d4eb0d0d54b3361fc808754301dfa5051c5526
+pr 4106 OPEN 17ba68bc8beae426157e138cd5bbfdd3af297c1e
+pr 4107 OPEN a542065b19ee51ffc2de1dfba815068a70f2345b
+pr 4111 OPEN 18a0d126972996f9993d98cd7035438de6eb1753
+pr 4116 OPEN 51504cd31ee373facef9f6f80b88c8bcb480b09f
+url https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/ChinaMax/ChinaMax_Domain.txt e40ac3025f7dad0ec07fa21ea6210d4744dd3f4c3e97975460864f8a046d3b1b

@@ -21,16 +21,66 @@ permissions:
   issues: write
 
 jobs:
+  # 定时构建前先看输入有没有比上次发布更新，没有就跳过；手动触发和 push 总是构建
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.check.outputs.changed }}
+      upstream: ${{ steps.check.outputs.upstream }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check for upstream changes
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          since=$(gh api "repos/${{ github.repository }}/commits/release" --jq .commit.committer.date 2>/dev/null || true)
+          read -r upstream t < <(gh api repos/v2fly/domain-list-community/commits/HEAD --jq '.sha+" "+.commit.committer.date')
+          times=("$t v2fly/domain-list-community")
+          for n in $(sed 's/#.*//' patches.list | grep -oE 'pr:[0-9]+' | cut -d: -f2); do
+            times+=("$(gh pr view "$n" -R v2fly/domain-list-community --json updatedAt --jq .updatedAt || true) PR #$n")
+          done
+          # merge.list 里的 GitHub raw 链接取该文件最后一次提交的时间；其他链接无法判断，视为有变化
+          for url in $(sed 's/#.*//' merge.list | grep -oE 'https://[^ ]+'); do
+            t=
+            if [[ $url =~ ^https://raw\.githubusercontent\.com/([^/]+/[^/]+)/([^/]+)/(.+)$ ]]; then
+              t=$(gh api "repos/${BASH_REMATCH[1]}/commits?sha=${BASH_REMATCH[2]}&path=${BASH_REMATCH[3]}&per_page=1" --jq '.[0].commit.committer.date' || true)
+            fi
+            times+=("$t $url")
+          done
+
+          echo "上次发布：${since:-无}"
+          changed=false
+          for x in "${times[@]}"; do
+            t=${x%% *}
+            echo "$x"
+            # 查询失败（时间为空）也当作有变化；ISO 8601 UTC 时间可以直接按字符串比较
+            if [ -z "$t" ] || [[ $t > $since ]]; then changed=true; fi
+          done
+          if [ "${{ github.event_name }}" != schedule ]; then changed=true; fi
+          [ "$changed" = false ] && echo "::notice::上次发布后输入没有变化，跳过构建"
+          echo "upstream=$upstream" >>"$GITHUB_OUTPUT"
+          echo "changed=$changed" >>"$GITHUB_OUTPUT"
+
   build:
+    needs: check
+    if: needs.check.outputs.changed == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
 
+      # 固定到 check 时看到的 commit
       - name: Checkout v2fly/domain-list-community
         uses: actions/checkout@v7
         with:
           repository: v2fly/domain-list-community
+          ref: ${{ needs.check.outputs.upstream }}
           path: community
+
+      # 给 check_redundant 用：只和上游已合并的数据比，未合并的 PR 可能被拒，不能据此删手写规则
+      - name: Export unpatched geolocation-cn
+        run: (cd community && go run ./ --datapath=./data --outputdir="$GITHUB_WORKSPACE/plain-upstream" --exportlists=geolocation-cn)
 
       - name: Patch upstream (open PRs + extra/)
         env:
@@ -72,7 +122,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          python3 scripts/check_redundant.py --rule-set rule-set/can-be-direct --plain-dir plain --against geolocation-cn --out report.md
+          python3 scripts/check_redundant.py --rule-set rule-set/can-be-direct --plain-dir plain-upstream --against geolocation-cn --out report.md
           title="can-be-direct 中有条目已被 geolocation-cn 收录"
           num=$(gh issue list --state open --search "\"$title\" in:title" --json number,title \
             --jq "[.[] | select(.title == \"$title\")][0].number // empty")
