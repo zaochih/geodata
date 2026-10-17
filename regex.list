@@ -3,6 +3,7 @@
 # 不在这里的列表，regexp/keyword 仍会被丢弃（例如 geolocation-!cn 含 category-porn 的大量正则，只用于 DNS 分流）。
 # 这里的名字必须同时在 geosite.list 里。
 
+category-ads-all
 category-game-platforms-download
 category-games-!cn
 google
