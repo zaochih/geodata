@@ -8,8 +8,11 @@
   geosite.list  直接转换的 geosite 名单（支持 name@attr）
   merge.list    多来源合并去重，见文件头注释
   regex.list    保留 regexp/keyword 的列表（格式同 geosite.list），输出 classical 文本
+  geoip.list    官方 IP 段（可扣除子集），输出 geoip/<name>.mrs（ipcidr）
 """
 import argparse
+import ipaddress
+import json
 import subprocess
 import sys
 import tempfile
@@ -110,11 +113,74 @@ def emit(out: Path, name: str, suffixes: set[str], fulls: set[str], mihomo: str,
     return True
 
 
+def read_geoips(path: Path) -> dict[str, tuple[list[str], list[str]]]:
+    """`目标名 = 来源 [- 扣除的来源] + 来源 ...` → {目标名: (来源, 扣除的来源)}"""
+    specs = {}
+    for line in read_lines(path):
+        target, _, sources = line.partition("=")
+        add, sub = [], []
+        for part in sources.split("+"):
+            head, *rest = part.split(" - ")
+            add.append(head.strip())
+            sub += [r.strip() for r in rest]
+        specs[target.strip()] = (add, sub)
+    return specs
+
+
+def url_to_networks(url: str) -> list:
+    """文本（每行一个 CIDR）、Google 风格 JSON、`URL@键,键`（取 JSON 里指定键下的 CIDR 数组），或 `AS12345`（RIPEstat 查询该 AS 当前宣告的前缀）→ 网段列表。"""
+    if url.upper().startswith("AS") and url[2:].isdigit():
+        url = f"https://stat.ripe.net/data/announced-prefixes/data.json?resource={url.upper()}"
+        with urllib.request.urlopen(url, timeout=120) as resp:
+            return [ipaddress.ip_network(p["prefix"]) for p in json.load(resp)["data"]["prefixes"]]
+    url, _, keys = url.partition("@")
+    req = urllib.request.Request(url, headers={"User-Agent": "stash-rules-build"})
+    with urllib.request.urlopen(req, timeout=120) as resp:
+        text = resp.read().decode()
+    if keys:
+        # 顶层是 {键: [CIDR...]} 的 JSON（如 api.github.com/meta），`@键,键` 指定要取哪几个
+        data = json.loads(text)
+        items = [i for k in keys.split(",") for i in data[k]]
+    elif text.lstrip().startswith("{"):
+        items = [p.get("ipv4Prefix") or p.get("ipv6Prefix") for p in json.loads(text)["prefixes"]]
+    else:
+        items = [line.split("#")[0].strip() for line in text.splitlines()]
+    return [ipaddress.ip_network(i, strict=False) for i in items if i]
+
+
+def subtract(nets: list, holes: list) -> list:
+    for hole in holes:
+        rest = []
+        for net in nets:
+            if net.version != hole.version or not net.overlaps(hole):
+                rest.append(net)
+            elif not net.subnet_of(hole):
+                rest += net.address_exclude(hole)
+        nets = rest
+    return nets
+
+
+def emit_ip(out: Path, name: str, nets: list, mihomo: str, note: str = "") -> bool:
+    v4 = list(ipaddress.collapse_addresses(n for n in nets if n.version == 4))
+    v6 = list(ipaddress.collapse_addresses(n for n in nets if n.version == 6))
+    lines = [str(n) for n in v4 + v6]
+    if not lines:
+        print(f"[ERROR] {name}: 结果为空", file=sys.stderr)
+        return False
+    (out / f"{name}.list").write_text("\n".join(lines) + "\n")
+    with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False) as tmp:
+        tmp.write("\n".join(lines) + "\n")
+    subprocess.run([mihomo, "convert-ruleset", "ipcidr", "text", tmp.name, str(out / f"{name}.mrs")], check=True)
+    print(f"{name}: {len(v4)} 条 IPv4 + {len(v6)} 条 IPv6{note}")
+    return True
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--names", type=Path, default=Path("geosite.list"))
     ap.add_argument("--merges", type=Path, default=Path("merge.list"))
     ap.add_argument("--regex", type=Path, default=Path("regex.list"))
+    ap.add_argument("--geoip", type=Path, default=Path("geoip.list"))
     ap.add_argument("--plain-dir", type=Path)
     ap.add_argument("--out-dir", type=Path)
     ap.add_argument("--mihomo", default="mihomo")
@@ -168,6 +234,19 @@ def main() -> int:
             before = len(suffixes) + len(fulls)
             suffixes, fulls = prune(suffixes, fulls)
             ok &= emit(out, target, suffixes, fulls, args.mihomo, f"（合并后 {before} → 去重 {len(suffixes) + len(fulls)}）")
+
+    if args.geoip.exists():
+        ip_out = args.out_dir / "geoip"
+        ip_out.mkdir(parents=True, exist_ok=True)
+        for target, (add, sub) in read_geoips(args.geoip).items():
+            try:
+                nets = [n for url in add for n in url_to_networks(url)]
+                holes = [n for url in sub for n in url_to_networks(url)]
+            except (OSError, ValueError, KeyError) as e:
+                print(f"[ERROR] {target}: {e}", file=sys.stderr)
+                ok = False
+                continue
+            ok &= emit_ip(ip_out, target, subtract(nets, holes), args.mihomo, f"（扣除 {len(holes)} 段）" if holes else "")
 
     return 0 if ok else 1
 

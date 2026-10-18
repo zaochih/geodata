@@ -66,6 +66,17 @@ format: text
 url: https://raw.githubusercontent.com/zaochih/stash-rules/refs/heads/release/geosite/category-game-platforms-download.classical.list
 ```
 
+### IP 段 `geoip.list`
+
+从官方来源生成 `ipcidr` 类型的 mrs（目前有 `telegram`、`google`、`github`），产物在 `release` 分支的 `geoip/` 下。`google` 用 `goog.json` 扣掉 `cloud.json`，只保留 Google 自家服务，不含 GCP 客户的地址。
+用于域名嗅探不到、直接连 IP 的场景（如 Telegram），规则里记得带 `no-resolve`：
+
+```yaml
+behavior: ipcidr
+format: mrs
+url: https://raw.githubusercontent.com/zaochih/stash-rules/refs/heads/release/geoip/telegram.mrs
+```
+
 ### 限制
 
 - `regexp:` 和 `keyword:` 规则无法放进 `domain` 类型的 mrs；不在 `regex.list` 里的列表构建时会丢弃并在日志里提示数量，
