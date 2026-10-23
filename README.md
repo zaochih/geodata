@@ -51,7 +51,10 @@ url: https://raw.githubusercontent.com/zaochih/stash-rules/refs/heads/release/ge
 构建时在上游数据（`community/data/`）上先打补丁，`include`、`@attr` 仍由官方工具处理：
 
 - `patches.list`：上游尚未合并的 PR，一行一个 `pr:12345`（可写 `pr:12345@abc1234` 固定 head sha，PR 有新提交时警告）。
-  只应用 PR 中 `data/` 下的改动；PR 已合并会提示移除，已关闭或无法应用会警告并跳过，不会让构建失败。
+  只应用 PR 中 `data/` 下的改动；PR 已合并会提示移除，已关闭会警告并跳过，不会让构建失败。
+  合并由 `scripts/apply_pr_diff.py` 按「规则行」语义进行，而不是 `git apply` 的行号/上下文补丁：上游已有的行自动跳过，
+  `@attr` 做增量合并（如 PR 给 `foo.com @ads` 加 `@telemetry`，上游若已改成 `foo.com @ads @cn` 则得到 `foo.com @ads @cn @telemetry`），
+  所以上游在同一区域的改动不再导致整个 PR 失败；PR 的改动已全部体现在上游时会提示移除。
 - `extra/<列表名>`：追加到上游同名列表末尾（不存在则新建），用 v2fly 源语法（`domain:` / `full:` / `regexp:` / `include:` / `@attr`）。
   在所有 PR 之后应用；与上游重复的条目会被官方工具自动去重。
 

@@ -43,18 +43,17 @@ if [ -f "$patches" ]; then
       echo "::warning::PR #$n 没有 data/ 下的改动，跳过"
       continue
     fi
-    # 只应用 data/ 下的改动；git apply 是原子的，失败不会留下半截改动
-    if (cd "$community" && printf '%s\n' "$diff" | git apply --check --include='data/*' - 2>/dev/null); then
-      (cd "$community" && printf '%s\n' "$diff" | git apply --include='data/*' -)
-      echo "已应用 PR #$n"
-      applied+=("#$n")
-    else
-      echo "::warning::PR #$n 无法应用到当前上游，跳过"
-    fi
+    # 按规则行语义合并（见 apply_pr_diff.py）：上游已有的行跳过，属性增量合并，不依赖行号和上下文
+    printf '%s\n' "$diff" | python3 "$(dirname "$0")/apply_pr_diff.py" "$community"
+    case $? in
+      0) echo "已应用 PR #$n"; applied+=("#$n") ;;
+      3) echo "::notice::PR #$n 的改动已全部体现在上游，可从 patches.list 移除" ;;
+      *) echo "::warning::PR #$n 无法应用到当前上游，跳过" ;;
+    esac
   done <"$patches"
 fi
 
-# 先 PR 后 extra：PR 的 diff 依赖未修改的文件上下文
+# 先 PR 后 extra
 if [ -d "$extra" ]; then
   for f in "$extra"/*; do
     [ -f "$f" ] || continue
