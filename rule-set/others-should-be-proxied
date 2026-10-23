@@ -1,17 +1,1 @@
-# Apple Intelligence
-gateway.icloud.com
-
-apple-relay.apple.com
-apple-relay.fastly-edge.com
-apple-relay.cloudflare.com
-apple-relay.akamaized.net
-apple-relay.mask.apple-dns.net
-apps.mzstatic.com
-guzzoni.apple.com
-cp4.cloudflare.com
-gspe1-ssl.ls.apple.com
-.smoot.apple.com
-smoot.apple.com
-.smoot.apple
-smoot.apple
-seed.siri.apple.com
+# 2026-10-23: Apple Intelligence 相关条目已迁入 extra/apple-intelligence（geosite:apple-intelligence）。
