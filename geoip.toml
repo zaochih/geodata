@@ -1,0 +1,56 @@
+# 官方来源的 IP 段，生成 ipcidr 类型的 .mrs。每个表是一个产物：[目标名]
+#   include  要加入的来源（必填）
+#   exclude  要扣除的来源（可选）
+# 每个来源是一个带 type 的表：
+#   { type = "url", url = "https://..." }                 每行一个 CIDR 的文本，或 Google 风格 JSON（prefixes[].ipv4Prefix/ipv6Prefix）
+#   { type = "url", url = "https://...", keys = ["a"] }   顶层是 {键: [CIDR...]} 的 JSON，只取这几个键（如 api.github.com/meta）
+#   { type = "m365", areas = ["Skype"] }                  Microsoft 365 endpoints 接口（areas 可选：Common/Exchange/SharePoint/Skype，缺省全取）
+#   { type = "asn", asn = [12345] }                     RIPEstat 查询该 AS 当前宣告的前缀（可写单个数字或列表）
+#   { type = "cidr", cidr = ["1.2.3.0/24"] }              直接写 CIDR（可写单个字符串或列表）
+# 产物路径：release 分支 geoip/<name>.mrs（同名 .list 是明文，方便排查）。
+# 结果会合并相邻/重叠的网段。
+
+# Telegram 官方公布的 DC / 客户端出口段，再加上 Telegram 自有 AS 当前宣告的前缀（官方列表里没有的段，如 95.161.72.0/21）。
+# AS 号与 Loyalsoldier/geoip 一致，前缀由 RIPEstat 查询，所以 AS 前缀只在构建时刻有效，不会随上游变化自动触发重建。
+[telegram]
+include = [
+  { type = "url", url = "https://core.telegram.org/resources/cidr.txt" },
+  { type = "asn", asn = [62041, 62014, 59930, 44907, 211157] },
+]
+
+# goog.json 是 Google 全部地址，里面包含 Google Cloud 客户的地址；扣掉 cloud.json 后只剩 Google 自家服务，
+# 避免托管在 GCP 上的第三方站点被误分到 Google 策略组。
+[google]
+include = [{ type = "url", url = "https://www.gstatic.com/ipranges/goog.json" }]
+exclude = [{ type = "url", url = "https://www.gstatic.com/ipranges/cloud.json" }]
+
+# GitHub 官方 meta 接口。只取 GitHub 自有服务的目的地址：web/api/git/packages/pages/copilot。
+# 不要 actions/codespaces/actions_macos（Azure 托管的 runner）、importer（AWS）、hooks（GitHub 发出 webhook 的源地址）。
+[github]
+include = [{ type = "url", url = "https://api.github.com/meta", keys = ["web", "api", "git", "packages", "pages", "copilot"] }]
+
+# Microsoft 365 官方公布的服务端点 IP（Exchange Online、SharePoint/OneDrive、Teams/Skype 含媒体流 UDP 3478-3481、Entra ID 等公共服务）。
+# 只覆盖 Microsoft 365，不含 Azure（含大量客户地址）、Xbox、Bing、Windows Update 等，那些靠域名规则。
+# endpoints 接口不支持 Last-Modified，所以 workflow 用它的 version 接口判断有没有新版本。
+[microsoft365]
+include = [{ type = "m365" }]
+
+# Apple 没有官方的 IP 段订阅。
+#   AS714 APPLE-ENGINEERING、AS6185 APPLE-AUSTIN 均登记在 Apple 名下（ARIN RDAP，2026-10-23），
+#   当前宣告了 17.0.0.0/8 之外的 139.178.128.0/18、144.178.0.0/18、57.102.0.0/15、65.199.22.0/23、2a01:b740::/32 等。
+#   AS2709 / AS1036 / AS1042 也登记在 Apple 名下，但当时没有宣告任何前缀，不收。
+#   AS 展开有 BGP 宣告被污染的风险，所以下面再写死注册信息里确认的段作为底线：宣告再怎么变，这几段都在。
+[apple]
+include = [
+  { type = "asn", asn = [714, 6185] },
+  { type = "cidr", cidr = [
+    "17.0.0.0/8",         # ARIN: APPLE-WWNET；Apple 在 support.apple.com/102266 也建议 APNs 放行整个 17.0.0.0/8
+    "2620:149::/32",      # ARIN: APPLE-WWNET
+    "2403:300::/32",      # APNIC: APPLE-SG, Apple South Asia Pte Ltd；文档里的 2403:300:a42::/48、a51::/48 都在其中
+    "2a01:b740:a42::/48", # support.apple.com/102266 列出；AS6185 宣告的也是 2a01:b740::/32 下的前缀。RIPE 查询当时被拒，没有核实注册信息
+  ] },
+]
+# 没收的 Apple 名下分配（用途不明或不是 Apple 服务）：
+#   2620:0:1b00::/45（APPLE-WWNET）、2001:506:200::/40（APPLE-INTERNAL）、
+#   192.12.74.0/24、192.42.249.0/24、204.79.190.0/24（ARIN 登记 Apple 的老 C 类段）、
+#   192.35.50.0/24、198.183.16.0/20（Claris）

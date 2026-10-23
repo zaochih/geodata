@@ -66,9 +66,9 @@ format: text
 url: https://raw.githubusercontent.com/zaochih/stash-rules/refs/heads/release/geosite/category-game-platforms-download.classical.list
 ```
 
-### IP 段 `geoip.list`
+### IP 段 `geoip.toml`
 
-从官方来源生成 `ipcidr` 类型的 mrs（目前有 `telegram`、`google`、`github`），产物在 `release` 分支的 `geoip/` 下。`google` 用 `goog.json` 扣掉 `cloud.json`，只保留 Google 自家服务，不含 GCP 客户的地址。
+从官方来源生成 `ipcidr` 类型的 mrs（目前有 `telegram`、`google`、`github`、`apple`）。`apple` 没有官方订阅，用 ARIN/APNIC 的注册信息和 Apple 官方文档，不展开 AS（BGP 宣告可能被污染），产物在 `release` 分支的 `geoip/` 下。`google` 用 `goog.json` 扣掉 `cloud.json`，只保留 Google 自家服务，不含 GCP 客户的地址。
 用于域名嗅探不到、直接连 IP 的场景（如 Telegram），规则里记得带 `no-resolve`：
 
 ```yaml

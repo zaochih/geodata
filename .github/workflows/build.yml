@@ -9,7 +9,7 @@ on:
     paths:
       - geosite.list
       - merge.list
-      - geoip.list
+      - geoip.toml
       - regex.list
       - patches.list
       - extra/**
@@ -51,13 +51,21 @@ jobs:
             times+=("$t $url")
           done
 
-          # geoip.list 里的链接取 Last-Modified；拿不到视为有变化。api.github.com 没有这个头，跳过（和 AS 前缀一样，随其他输入变化时顺带刷新）
-          for url in $(sed 's/#.*//' geoip.list | grep -oE 'https://[^ ]+' | sed 's/@.*//' | grep -v '^https://api.github.com/' | sort -u); do
+          # geoip.toml 里的链接取 Last-Modified；拿不到视为有变化。api.github.com 没有这个头，跳过（和 AS 前缀一样，随其他输入变化时顺带刷新）
+          for url in $(sed 's/#.*//' geoip.toml | grep -oE 'https://[^ ",]+' | sed 's/@.*//' | grep -v '^https://api.github.com/' | sort -u); do
             lm=$(curl -fsSI --max-time 30 "$url" | tr -d '\r' | awk -F': ' 'tolower($1)=="last-modified"{print $2}')
             t=
             [ -n "$lm" ] && t=$(date -u -d "$lm" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || true)
             times+=("$t $url")
           done
+
+          # Microsoft 365 endpoints 接口没有 Last-Modified，用 version 接口的最新版本号（yyyyMMddNN）当作发布日期；查询失败视为有变化
+          if sed 's/#.*//' geoip.toml | grep -q 'type = "m365"'; then
+            v=$(curl -fsS --max-time 30 "https://endpoints.office.com/version/worldwide?clientrequestid=$(uuidgen)" | jq -r .latest || true)
+            t=
+            [[ $v =~ ^[0-9]{10}$ ]] && t="${v:0:4}-${v:4:2}-${v:6:2}T00:00:00Z"
+            times+=("$t endpoints.office.com(M365 $v)")
+          fi
 
           echo "上次发布：${since:-无}"
           changed=false
