@@ -1,0 +1,3 @@
+# Datadog 上报入口（intake / trace）；控制台和 API（app./api./us5. 等）不在其中
+regexp:^[a-z0-9.-]*intake[a-z0-9.-]*[.-]datadoghq\.(?:com|eu)$
+regexp:^trace\.agent\.(?:[a-z0-9-]+\.)?datadoghq\.(?:com|eu)$
