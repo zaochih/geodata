@@ -1,0 +1,1 @@
+DOMAIN-REGEX,.+\.dkr\.ecr\.[^\.]+\.amazonaws\.com$
