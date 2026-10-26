@@ -4,8 +4,4 @@
 #   pr:12345@abc1234    # 可选：@ 后是固定的 head sha，PR 有新提交（sha 不一致）时警告
 # PR 已合并会提示可移除；已关闭（未合并）或无法应用会警告并跳过，不影响构建。
 
-pr:4106   # geolocation-cn: 渝快办非 cq.gov.cn 域名
-pr:4107   # chaoxing/agora: 超星学习通业务域名
 pr:4111   # hypergryph: 鹰角 / Gryphline
-pr:4143   # telemetry: 给 telemetry 主机加 @telemetry，保留原有 @ads
-pr:4180   # agilebits: 1password.dev（1Password 开发者文档站）
