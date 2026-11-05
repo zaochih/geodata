@@ -2,8 +2,10 @@
 # `name@attr` 表示只取带该属性的条目（例如 apple@cn）。
 # 产物路径：release 分支 geosite/<name>.mrs（同名 .list 是明文，方便排查）。
 #
-# `cn` 不在这里：它由 merge.list 合并 v2fly 与 ChinaMax 后生成。
+# `cn` 就是 v2fly 自己的 cn（include tld-cn 与 geolocation-cn），不再经 merge.list 合并。
+# alibaba / baidu / bytedance / tencent：用于 DNS 按厂商分流（阿里域名走 AliDNS、腾讯走 DNSPod 等）。
 
+alibaba
 anthropic
 apple
 apple@cn
@@ -12,7 +14,9 @@ apple-music
 apple-podcasts
 apple-tvplus
 apple-update
+baidu
 bing
+bytedance
 category-ads-all
 category-ai-!cn
 category-ai-cn
@@ -34,6 +38,7 @@ category-password-management
 category-social-media-!cn
 category-telemetry
 category-web-archive
+cn
 figma
 geolocation-!cn
 geolocation-!cn@cn
@@ -51,6 +56,7 @@ microsoft@cn
 openai
 paypal
 private
+tencent
 twitter
 wikimedia
 xbox

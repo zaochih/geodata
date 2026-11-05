@@ -41,10 +41,11 @@ url: https://raw.githubusercontent.com/zaochih/stash-rules/refs/heads/release/ge
 导致 `geolocation-cn` 里 bytedance/feishu/tencent/alibaba/jd 等整块子列表缺失。
 详见 Loyalsoldier/domain-list-custom#135。
 
-### 合并生成的 `cn`
+### `merge.list`
 
-`merge.list` 把 v2fly 的 `tld-cn` + `geolocation-cn` 和 [ChinaMax](https://github.com/blackmatrix7/ios_rule_script) 合并，
-并删除被父级后缀覆盖的子域名。ChinaMax 条目多但没有 `.cn` 顶级域，v2fly 则带有飞书/字节等完整的公司列表，二者互补。
+多来源合并、去重生成一个 `.mrs` 的机制，目前没有合并目标（文件保留，工作流会读它）。
+`cn` 曾经由 v2fly 的 `tld-cn` + `geolocation-cn` 和 [ChinaMax](https://github.com/blackmatrix7/ios_rule_script) 合并而成，
+2026-11-05 去掉了 ChinaMax（它独有部分约 97.5% 来自 dnsmasq-china-list，会把海外域名当国内域名），现在 `cn` 就是 v2fly 自己的 `cn`，直接列在 `geosite.list`。
 
 ### 上游补丁 `patches.list` 与 `extra/`
 
@@ -85,7 +86,6 @@ url: https://raw.githubusercontent.com/zaochih/stash-rules/refs/heads/release/ge
 - `regexp:` 和 `keyword:` 规则无法放进 `domain` 类型的 mrs；不在 `regex.list` 里的列表构建时会丢弃并在日志里提示数量，
   在 `regex.list` 里的则输出到 `.classical.list`。`geolocation-!cn` 因含 `category-porn` 的大量正则，刻意不输出。
 - `patches.list` / `extra/` 只能新增条目，不支持删除。
-- `cn` 依赖 ChinaMax 的第三方数据，口径与 v2fly 的 `cn` 不同，条目约 11 万。
 
 ### 本地构建
 

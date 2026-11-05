@@ -5,3 +5,4 @@
 # PR 已合并会提示可移除；已关闭（未合并）或无法应用会警告并跳过，不影响构建。
 
 pr:4111   # hypergryph: 鹰角 / Gryphline
+pr:4262   # tcl: 开机广告主机补 @ads，BI/QMS 遥测主机加 @telemetry 并纳入 category-telemetry

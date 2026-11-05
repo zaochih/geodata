@@ -3,6 +3,11 @@
 #   https://...     ChinaMax 格式的文本：以 `.` 开头是域名后缀，否则是精确域名，`#` 为注释
 # 去重规则：被父级后缀覆盖的子域名会被删除。
 
-# v2fly 的 cn（tld-cn + geolocation-cn）与 ChinaMax 各有所长：
-# ChinaMax 条目多但没有 .cn 顶级域（连 feishu.cn 都没有），v2fly 有飞书/字节等整条链但条目少。
-cn = geosite:tld-cn + geosite:geolocation-cn + https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/ChinaMax/ChinaMax_Domain.txt
+# 2026-11-05 目前没有合并目标。原来的 cn = tld-cn + geolocation-cn + ChinaMax 已去掉 ChinaMax：
+# 它独有的约 10.5 万条里有约 97.5% 与 felixonmars/dnsmasq-china-list 重合，
+# 而 dnsmasq-china-list 只看权威 DNS 所在地、会把海外域名收进来（Sukka 批评的问题）；
+# 另有 sony.com、amd.com、garmin.com、oracle.com、razerzone.com 这类整域海外厂商。
+# 去掉后 cn 就等于 v2fly 自己的 cn（include tld-cn 与 geolocation-cn），直接写在 geosite.list 里，不需要合并。
+# 文件保留是因为 .github/workflows/build.yml 会读它。
+# 回滚：cn = geosite:tld-cn + geosite:geolocation-cn + https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/ChinaMax/ChinaMax_Domain.txt
+# （同时要从 geosite.list 里删掉 cn）
