@@ -1,0 +1,2 @@
+DOMAIN-REGEX,^[a-z0-9.-]*intake[a-z0-9.-]*[.-]datadoghq\.(?:com|eu)$
+DOMAIN-REGEX,^trace\.agent\.(?:[a-z0-9-]+\.)?datadoghq\.(?:com|eu)$
