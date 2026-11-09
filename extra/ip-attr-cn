@@ -1,0 +1,7 @@
+# 自建列表（上游没有）：会显示「IP 属地」的平台，走指定出口（家里的 Tailscale 出口节点）。
+# 2026-11-09 先放小红书、微博、微信公众平台。
+include:xiaohongshu
+# 微博在上游 sina 里（sinaimg.cn 等图片 CDN 与新浪共用），整份引入，新浪其他站点也会一起走。
+include:sina
+# 公众号暂时只要后台/文章页；微信客户端多是直连 IP 的长连接，域名规则管不到，以后再看。
+full:mp.weixin.qq.com
