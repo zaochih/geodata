@@ -1,1 +1,1 @@
-regexp:^cache[0-9]+-[a-z]+[0-9]+\.steamcontent\.com$
+regexp:^cache[0-9]+-[a-z0-9-]+\.steamcontent\.com$
